@@ -1,8 +1,9 @@
 import cv2
 import os
-import numpy as np
-from pathlib import Path
+import pytesseract
 
+pytesseract.pytesseract.tesseract_cmd = \
+    r'C:\Program Files\Tesseract-OCR\tesseract'
 """
 img = cv2.imread('week_1_page_1.jpg')
 text = tess.image_to_string(img)
@@ -10,6 +11,7 @@ text = tess.image_to_string(img)
 print(text)
 """
 location = r'small'
+location2 = r'snippets'
 
 
 def ResizeWithAspectRatio(image, width=None, height=None, inter=cv2.INTER_AREA):
@@ -49,7 +51,7 @@ for f in os.listdir(location):
             cv2.rectangle(image, (x, y), (x + w, y + h), (36,255,12), 3)
             if area > 160000:
                 ROI = image[y:y+h, x:x+w]
-                cv2.imwrite('ROI_{}.png'.format(ROI_number), ROI)
+                cv2.imwrite(os.path.join(location2, 'ROI_{}.png'.format(ROI_number)), ROI)
                 ROI_number += 1
 
     resize1 = ResizeWithAspectRatio(thresh, width=880)
@@ -58,5 +60,10 @@ for f in os.listdir(location):
 
     #cv2.imshow('thresh', resize1)
     #cv2.imshow('dilate', resize2)
-    cv2.imshow('image', resize)
-    cv2.waitKey()
+    #cv2.imshow('image', resize)
+    #cv2.waitKey()
+
+    d = {}
+    for snips in os.listdir(location2):
+        d[snips] = pytesseract.image_to_string(os.path.join(location2, snips)).strip('\\n ')
+    print(d)
