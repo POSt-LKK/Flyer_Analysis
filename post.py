@@ -74,6 +74,6 @@ import csv
 lst = []
 with open('product_dictionary.csv', 'r') as f:
     reader = csv.reader(f)
-    your_list = list(reader)
-
-print(your_list)
+    for row in reader:
+        lst.append(', '.join(row))
+print(lst)
