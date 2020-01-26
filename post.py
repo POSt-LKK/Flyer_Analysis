@@ -3,7 +3,7 @@ import os
 import pytesseract
 
 pytesseract.pytesseract.tesseract_cmd = \
-    r'C:\Program Files\Tesseract-OCR\tesseract'
+    r'C:\Program Files (x86)\Tesseract-OCR\tesseract'
 """
 img = cv2.imread('week_1_page_1.jpg')
 text = tess.image_to_string(img)
@@ -62,8 +62,18 @@ for f in os.listdir(location):
     #cv2.imshow('dilate', resize2)
     #cv2.imshow('image', resize)
     #cv2.waitKey()
-
+'''
     d = {}
     for snips in os.listdir(location2):
         d[snips] = pytesseract.image_to_string(os.path.join(location2, snips)).strip('\\n ')
     print(d)
+'''
+
+import csv
+
+lst = []
+with open('product_dictionary.csv', 'r') as f:
+    reader = csv.reader(f)
+    your_list = list(reader)
+
+print(your_list)
