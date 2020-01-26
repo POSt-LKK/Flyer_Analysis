@@ -1,6 +1,7 @@
 import cv2
 import os
 import pytesseract
+import csv
 
 pytesseract.pytesseract.tesseract_cmd = \
     r'C:\Program Files (x86)\Tesseract-OCR\tesseract'
@@ -62,14 +63,21 @@ for f in os.listdir(location):
     #cv2.imshow('dilate', resize2)
     #cv2.imshow('image', resize)
     #cv2.waitKey()
-'''
+
     d = {}
     for snips in os.listdir(location2):
-        d[snips] = pytesseract.image_to_string(os.path.join(location2, snips)).strip('\\n ')
-    print(d)
-'''
-
-import csv
+        s = cv2.imread(os.path.join(location2, snips))
+        g = cv2.cvtColor(s, cv2.COLOR_BGR2GRAY)
+        (thresh, bw) = cv2.threshold(g, 127, 255, cv2.THRESH_BINARY_INV)
+        bw_blur = cv2.blur(bw, (5, 5))
+        bw_small = ResizeWithAspectRatio(bw_blur,
+                                              width=3*bw_blur.shape[1]//2,
+                                              height=3*bw_blur.shape[0]//2)
+        d[snips] = pytesseract.image_to_string(bw_small,
+                                               lang='uninsta').replace('\n',
+                                                                       ' ')
+    i += 1
+print(d)
 
 lst = []
 with open('product_dictionary.csv', 'r') as f:
