@@ -4,12 +4,87 @@ import pytesseract
 from fuzzywuzzy import process, fuzz
 from operator import itemgetter
 import csv
+from typing import List
 
 pytesseract.pytesseract.tesseract_cmd = \
-    r'C:\Users\Kevin Li Chen\AppData\Local\Tesseract-OCR\tesseract'
+    r'C:\Program Files\Tesseract-OCR\tesseract'
 
 location = r'small'
 location2 = r'snippets'
+
+
+def clean_string(s: str) -> str:
+    product_list = []
+    condition = False
+    with open('product_dictionary.csv', 'r') as file:
+        reader = csv.reader(file)
+        for row in reader:
+            product_list.append(', '.join(row))
+    list_of_words = s.split()
+    for word in list_of_words:
+        for product in product_list:
+            if word in product:
+                condition = True
+        if not condition:
+            list_of_words.remove(word)
+    final_string = ''
+    for w in list_of_words:
+        final_string += w + ' '
+    return final_string
+
+
+def get_list_of_numbers(block_str: str) -> list:
+    new_list =[]
+    for letter in block_str:
+        if letter.isnumeric():
+            if float(letter) > 100:
+                letter = str(float(letter)/100)
+            i = block_str.index(letter)
+            k= 0
+            while k < 2:
+                right_limit = block_str[i + 1:block_str.find(' ')]
+                i = block_str.find(' ')
+                k += 1
+            i = block_str.index(letter)
+            condition = True
+            n = i
+            j = 0
+            while condition:
+                if block_str[n] == ' ' and j < 2:
+                    j + 1
+                elif block_str[n] == ' ':
+                    left_limit = block_str[n + 1:i]
+                    condition = False
+                n - 1
+            new_list.append(left_limit + block_str[i] + right_limit)
+            return new_list
+
+
+def get_unit_promo_price(lst: list) -> float:
+    for val in lst:
+        if '$' in val:
+            if '/' in val and val(val.find('/') + 1).isnumeric():
+                return val[val.find('/') + 1]/val[val.find('/') - 1]
+            elif 'save' in val:
+                None
+            return val[val.find('$') + 1]
+
+
+def get_least_unit_promo_price(lst: list, block_str: str) -> int:
+    for val in lst:
+        if '/' in val and val(val.find('/') + 1).isnumeric():
+            return val[val.find('/') - 1]
+        elif 'buy one' in block_str or 'get one free' in block_str:
+            return 2
+    return 1
+
+
+def get_save_per_unit(lst: list):
+    for val in lst:
+        if 'save' in val:
+            for c in val:
+                if c.isnumeric():
+                    return val[val.find(c): val.find(' ')]
 
 
 def string_to_list(flyer_num: str, data: str, cur_list: list) -> None:
@@ -18,14 +93,14 @@ def string_to_list(flyer_num: str, data: str, cur_list: list) -> None:
 
 def add_info_from_flyer(flyer_num: str, block_text: str,
                         cur_list: list) -> None:
+    info_list = get_list_of_numbers(block_text)
     new_product = []
     new_product.append(flyer_num)
     new_product.append(find_product_name(block_text))
-    # new_product.append(find_unit_promo_price())
-    new_product.append(1)  # append 1 for now
+    new_product.append(get_unit_promo_price(info_list))  # append 1 for now
     new_product.append(find_uom(block_text))
-    new_product.append(1)  # for now / should be least unit for promo
-    new_product.append(1)  # for now / should be save_per_unit
+    new_product.append(get_least_unit_promo_price(info_list, block_text))  # for now / should be least unit for promo
+    new_product.append(get_save_per_unit(info_list))  # for now / should be save_per_unit
     new_product.append(0.0)  # should be discount
     new_product.append(find_if_organic(block_text))
     cur_list.append(new_product)
@@ -70,72 +145,20 @@ def write_report(data: list) -> None:
                           'discount', 'organic'])
         a.writerows(report)
 
-
-def ResizeWithAspectRatio(image, width=None, height=None, inter=cv2.INTER_AREA):
-    dim = None
-    (h, w) = image.shape[:2]
-
-    if width is None and height is None:
-        return image
-    if width is None:
-        r = height / float(h)
-        dim = (int(w * r), height)
-    else:
-        r = width / float(w)
-        dim = (width, int(h * r))
-
-    return cv2.resize(image, dim, interpolation=inter)
-
-
-i = 0
+dictionaries = open('dictionary of words', 'r')
+list_of_snips = dictionaries.readlines()
+dictionaries.close()
 output_list = []
-for f in os.listdir(location):
-    image = cv2.imread(os.path.join(location, f))
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray, (9, 9), 0)
-    thresh = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                   cv2.THRESH_BINARY_INV, 11, 30)
-
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9))
-    dilate = cv2.dilate(thresh, kernel, iterations=12)
-
-    cnts = cv2.findContours(dilate, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cnts = cnts[0] if len(cnts) == 2 else cnts[1]
-
-    ROI_number = 0
-    for c in cnts:
-        area = cv2.contourArea(c)
-        if area > 16000:
-            x, y, w, h = cv2.boundingRect(c)
-            cv2.rectangle(image, (x, y), (x + w, y + h), (36, 255, 12), 3)
-            if area > 160000:
-                ROI = image[y:y + h, x:x + w]
-                cv2.imwrite(os.path.join(location2,
-                                         'ROI_{0}_{1}.png'.format(i,
-                                                                  ROI_number)),
-                            ROI)
-                ROI_number += 1
-
-    resize1 = ResizeWithAspectRatio(thresh, width=880)
-    resize2 = ResizeWithAspectRatio(dilate, width=880)
-    resize = ResizeWithAspectRatio(image, width=880)
-
-    # cv2.imshow('thresh', resize1)
-    # cv2.imshow('dilate', resize2)
-    # cv2.imshow('image', resize)
-    # cv2.waitKey()
-
-    d = {}
-    for snips in os.listdir(location2):
-        s = cv2.imread(os.path.join(location2, snips))
-        g = cv2.cvtColor(s, cv2.COLOR_BGR2GRAY)
-        (thresh, bw) = cv2.threshold(g, 127, 255, cv2.THRESH_BINARY_INV)
-        d[snips] = pytesseract.image_to_string(bw).replace('\n', ' ')
-        string_to_list(str(f), d[snips], output_list)
-    i += 1
-print(d)
+d ={}
+for snips in list_of_snips:
+    date = snips[:snips.find(':::')]
+    string = snips[snips.find(':::') + 2:]
+    clean_string = clean_string(string)
+    if d.get(date, 'Na') == 'Na':
+        d[date] = clean_string
+    else:
+        d[date] += ' ' + clean_string()
+    string_to_list(date, d[date], output_list)
 sorted_list = sorted(output_list, key=itemgetter(0))
 print(sorted_list)
 write_report(sorted_list)
-
-os.remove(r"snippets\*.jpg")
