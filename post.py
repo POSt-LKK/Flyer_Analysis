@@ -4,13 +4,8 @@ import pytesseract
 import csv
 
 pytesseract.pytesseract.tesseract_cmd = \
-    r'C:\Program Files (x86)\Tesseract-OCR\tesseract'
-"""
-img = cv2.imread('week_1_page_1.jpg')
-text = tess.image_to_string(img)
+    r'C:\Program Files\Tesseract-OCR\tesseract'
 
-print(text)
-"""
 location = r'small'
 location2 = r'snippets'
 
@@ -74,7 +69,7 @@ for f in os.listdir(location):
                                               width=3*bw_blur.shape[1]//2,
                                               height=3*bw_blur.shape[0]//2)
         d[snips] = pytesseract.image_to_string(bw_small,
-                                               lang='uninsta').replace('\n',
+                                               lang='eng').replace('\n',
                                                                        ' ')
     i += 1
 print(d)
