@@ -30,6 +30,7 @@ def ResizeWithAspectRatio(image, width=None, height=None, inter=cv2.INTER_AREA):
     return cv2.resize(image, dim, interpolation=inter)
 
 
+i = 0 # This is the index for the image
 for f in os.listdir(location):
     image = cv2.imread(os.path.join(location, f))
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -46,12 +47,15 @@ for f in os.listdir(location):
     ROI_number = 0
     for c in cnts:
         area = cv2.contourArea(c)
-        if area > 10000:
+        if area > 16000:
             x,y,w,h = cv2.boundingRect(c)
             cv2.rectangle(image, (x, y), (x + w, y + h), (36,255,12), 3)
             if area > 160000:
                 ROI = image[y:y+h, x:x+w]
-                cv2.imwrite(os.path.join(location2, 'ROI_{}.png'.format(ROI_number)), ROI)
+                cv2.imwrite(os.path.join(location2,
+                                         'ROI_{0}_{1}.png'.format(i,
+                                                                  ROI_number)),
+                            ROI)
                 ROI_number += 1
 
     resize1 = ResizeWithAspectRatio(thresh, width=880)
@@ -65,5 +69,15 @@ for f in os.listdir(location):
 
     d = {}
     for snips in os.listdir(location2):
-        d[snips] = pytesseract.image_to_string(os.path.join(location2, snips)).strip('\\n ')
-    print(d)
+        s = cv2.imread(os.path.join(location2, snips))
+        g = cv2.cvtColor(s, cv2.COLOR_BGR2GRAY)
+        (thresh, bw) = cv2.threshold(g, 127, 255, cv2.THRESH_BINARY_INV)
+        bw_blur = cv2.blur(bw, (5, 5))
+        bw_small = ResizeWithAspectRatio(bw_blur,
+                                         width=3*bw_blur.shape[1]//2,
+                                         height=3*bw_blur.shape[0]//2)
+        d[snips] = pytesseract.image_to_string(bw_small,
+                                               lang='uninsta').replace('\n',
+                                                                       ' ')
+    i += 1
+print(d)
