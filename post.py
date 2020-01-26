@@ -25,7 +25,7 @@ def ResizeWithAspectRatio(image, width=None, height=None, inter=cv2.INTER_AREA):
 
     return cv2.resize(image, dim, interpolation=inter)
 
-
+i = 0
 for f in os.listdir(location):
     image = cv2.imread(os.path.join(location, f))
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
